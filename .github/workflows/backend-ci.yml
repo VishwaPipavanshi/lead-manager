@@ -1,0 +1,37 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [develop, main]
+  pull_request:
+    branches: [develop, main]
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      APP_ENV: test
+      MONGODB_URL: mongodb://localhost:27017
+      DATABASE_NAME: lead_manager_test
+      JWT_SECRET_KEY: local-ci-secret-that-is-never-used-outside-tests
+      ALLOWED_ORIGINS: http://localhost:5173
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - run: python -m pip install --upgrade pip
+      - run: pip install -r requirements.txt
+      - run: ruff check app tests
+      - run: ruff format --check app tests
+      - run: bandit -r app
+      - run: pip-audit
+      - run: python -m pytest -q
